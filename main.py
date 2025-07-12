@@ -1,58 +1,52 @@
+import os
 import requests
-from telegram.ext import Updater, CommandHandler
-import logging
+import telegram
+from telegram.ext import Dispatcher, CommandHandler
+from flask import Flask, request
 
-# === ТВОЙ ТОКЕН ===
+# === ТВОЙ ТОКЕН БОТА ===
 TOKEN = "7547829682:AAEkCr3jn5dLvPPGqafEhLYvWCLhyGUtW0E"
 
-# === Логирование (для Render) ===
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
+# === Flask и Telegram ===
+app = Flask(__name__)
+bot = telegram.Bot(token=TOKEN)
 
-# === Логика анализа ===
-def analyze(update, context):
-    try:
-        symbol = "BTCUSDT"
-        url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval=15m&limit=2"
-        response = requests.get(url)
+@app.route('/')
+def home():
+    return 'Bot is running!'
 
-        # Выводим в лог статус и текст ответа от Binance
-        logging.info(f"Status code: {response.status_code}")
-        logging.info(f"Response text: {response.text}")
-
-        data = response.json()
-        last_candle = data[-1]
-        open_price = float(last_candle[1])
-        close_price = float(last_candle[4])
-
-        if close_price > open_price:
-            signal = "BUY"
-        elif close_price < open_price:
-            signal = "SELL"
-        else:
-            signal = "WAIT"
-
-        update.message.reply_text(f"{signal}\nBTCUSDT: {close_price:.2f}")
-    except Exception as e:
-        update.message.reply_text("Ошибка анализа.")
-        logging.error(f"Ошибка: {e}")
-
-# === Стартовая команда ===
+# === Команды ===
 def start(update, context):
     update.message.reply_text("Привет! Используй команду /analyze")
 
-# === Основной цикл ===
-def main():
-    updater = Updater(TOKEN, use_context=True)
-    dp = updater.dispatcher
+def analyze(update, context):
+    try:
+        url = "https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=15m&limit=2"
+        data = requests.get(url).json()
+        open_price = float(data[-1][1])
+        close_price = float(data[-1][4])
+        signal = "BUY" if close_price > open_price else "SELL" if close_price < open_price else "WAIT"
+        update.message.reply_text(f"{signal}\nBTCUSDT: {close_price:.2f}")
+    except Exception as e:
+        update.message.reply_text("Ошибка анализа")
 
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("analyze", analyze))
+# === Webhook обработка ===
+@app.route(f"/{TOKEN}", methods=['POST'])
+def webhook():
+    update = telegram.Update.de_json(request.get_json(force=True), bot)
+    dispatcher.process_update(update)
+    return 'ok'
 
-    updater.start_polling()
-    updater.idle()
+# === Dispatcher ===
+from telegram.ext import Updater
+updater = Updater(token=TOKEN, use_context=True)
+dispatcher = updater.dispatcher
+dispatcher.add_handler(CommandHandler("start", start))
+dispatcher.add_handler(CommandHandler("analyze", analyze))
 
-if __name__ == '__main__':
-    main()
+# === Установить Webhook ===
+bot.set_webhook(f"https://<ТВОЙ-RENDER-URL>/{TOKEN}")
+
+# === Запустить Flask ===
+if __name__ == "__main__":
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
