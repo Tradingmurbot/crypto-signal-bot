@@ -2,11 +2,14 @@ import requests
 from telegram.ext import Updater, CommandHandler
 import logging
 
-# === ТВОЙ ТОКЕН ===
+# === ТВОЙ НОВЫЙ ТОКЕН ===
 TOKEN = "7547829682:AAEkCr3jn5dLvPPGqafEhLYvWCLhyGUtW0E"
 
 # === Логирование (для Render) ===
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 
 # === Логика анализа ===
 def analyze(update, context):
