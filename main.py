@@ -1,23 +1,4 @@
-import logging
-from flask import Flask, request, jsonify
-import requests
-import telegram
-from telegram import Update
-from telegram.ext import Dispatcher, CommandHandler
-
-# === ТВОЙ ТОКЕН ===
-TOKEN = "7547829682:AAEkCr3jn5dLvPPGqafEhLYvWCLhyGUtW0E"
-WEBHOOK_URL = "https://crypto-signal-bot-71sj.onrender.com"
-
-# === Настройка Telegram бота ===
-bot = telegram.Bot(token=TOKEN)
-
-# === Установка вебхука ===
-bot.set_webhook(url=f"{WEBHOOK_URL}/webhook")
-
-# === Flask-приложение ===
-app = Flask(__name__)
-dispatcher = Dispatcher(bot, None, use_context=True)
+ = Dispatcher(bot, None, use_context=True)
 
 # === Команда /start ===
 def start(update, context):
@@ -51,4 +32,4 @@ def webhook():
 # === Проверка живости ===
 @app.route('/')
 def index():
-    return "Бот работает!"
+    return "Бот работает"
