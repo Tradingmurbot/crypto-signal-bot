@@ -2,7 +2,7 @@ import requests
 from telegram.ext import Updater, CommandHandler
 import logging
 
-# === ТВОЙ НОВЫЙ ТОКЕН ===
+# === ТВОЙ ТОКЕН ===
 TOKEN = "7547829682:AAEkCr3jn5dLvPPGqafEhLYvWCLhyGUtW0E"
 
 # === Логирование (для Render) ===
@@ -17,8 +17,12 @@ def analyze(update, context):
         symbol = "BTCUSDT"
         url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval=15m&limit=2"
         response = requests.get(url)
-        data = response.json()
 
+        # Выводим в лог статус и текст ответа от Binance
+        logging.info(f"Status code: {response.status_code}")
+        logging.info(f"Response text: {response.text}")
+
+        data = response.json()
         last_candle = data[-1]
         open_price = float(last_candle[1])
         close_price = float(last_candle[4])
