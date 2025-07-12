@@ -1,46 +1,49 @@
-import os
 import requests
-from telegram import Update
-from telegram.ext import Updater, CommandHandler, CallbackContext
+from telegram.ext import Updater, CommandHandler
+import logging
 
-# Токен временно можно вставить вручную (или использовать переменные окружения)
+# === ТВОЙ ТОКЕН ===
 TOKEN = "7547829682:AAEkCr3jn5dLvPPGqafEhLYvWCLhyGUtW0E"
 
-def start(update: Update, context: CallbackContext):
-    update.message.reply_text("🤖 Привет! Я крипто-бот. Ожидайте сигналов...")
+# === Логирование (для Render) ===
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-def ping(update: Update, context: CallbackContext):
-    update.message.reply_text("🏓 Понг!")
-
-def analyze(update: Update, context: CallbackContext):
+# === Логика анализа ===
+def analyze(update, context):
     try:
-        # Получаем текущую цену BTC с Binance
-        url = "https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT"
-        response = requests.get(url).json()
-        price = float(response["price"])
+        symbol = "BTCUSDT"
+        url = f"https://api.binance.com/api/v3/klines?symbol={symbol}&interval=15m&limit=2"
+        response = requests.get(url)
+        data = response.json()
 
-        # Простейшая логика: Buy / Sell / Wait
-        if price < 60000:
-            signal = "🟢 BUY"
-        elif price > 64000:
-            signal = "🔴 SELL"
+        last_candle = data[-1]
+        open_price = float(last_candle[1])
+        close_price = float(last_candle[4])
+
+        if close_price > open_price:
+            signal = "BUY"
+        elif close_price < open_price:
+            signal = "SELL"
         else:
-            signal = "🟡 WAIT"
+            signal = "WAIT"
 
-        update.message.reply_text(f"📊 Цена BTC: ${price:.2f}\n📈 Сигнал: {signal}")
+        update.message.reply_text(f"{signal}\nBTCUSDT: {close_price:.2f}")
     except Exception as e:
-        update.message.reply_text(f"❌ Ошибка: {str(e)}")
+        update.message.reply_text("Ошибка анализа.")
+        logging.error(f"Ошибка: {e}")
 
+# === Стартовая команда ===
+def start(update, context):
+    update.message.reply_text("Привет! Используй команду /analyze")
+
+# === Основной цикл ===
 def main():
-    updater = Updater(token=TOKEN, use_context=True)
-    dispatcher = updater.dispatcher
+    updater = Updater(TOKEN, use_context=True)
+    dp = updater.dispatcher
 
-    # Обработчики команд
-    dispatcher.add_handler(CommandHandler("start", start))
-    dispatcher.add_handler(CommandHandler("ping", ping))
-    dispatcher.add_handler(CommandHandler("analyze", analyze))
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("analyze", analyze))
 
-    # Запуск бота
     updater.start_polling()
     updater.idle()
 
